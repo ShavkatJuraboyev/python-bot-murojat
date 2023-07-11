@@ -1,0 +1,55 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="PyPep8Inspection" enabled="true" level="WEAK WARNING" enabled_by_default="true">
+      <option name="ignoredErrors">
+        <list>
+          <option value="E501" />
+          <option value="W292" />
+          <option value="E231" />
+          <option value="E302" />
+        </list>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyPep8NamingInspection" enabled="true" level="WEAK WARNING" enabled_by_default="true">
+      <option name="ignoredErrors">
+        <list>
+          <option value="N802" />
+          <option value="N801" />
+        </list>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyShadowingBuiltinsInspection" enabled="true" level="WEAK WARNING" enabled_by_default="true">
+      <option name="ignoredNames">
+        <list>
+          <option value="input" />
+          <option value="id" />
+        </list>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyUnresolvedReferencesInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredIdentifiers">
+        <list>
+          <option value="main.*" />
+          <option value="bot.*" />
+          <option value="orm_app.models.Countries.*" />
+          <option value="orm_app.models.Employees.*" />
+          <option value="orm_app.views.union" />
+          <option value="orm_app.models.Jobs.*" />
+          <option value="orm_app.models.Dependents.*" />
+          <option value="django.conf.Settings.*" />
+          <option value="blog.models.Students.*" />
+          <option value="blog.models.Book.*" />
+          <option value="blog.views.*" />
+          <option value="news.models.*" />
+          <option value="blog.models.Faculty.*" />
+          <option value="blog.models.Direction.*" />
+          <option value="blog.models.Application.*" />
+          <option value="orm_app.models.Departments.*" />
+          <option value="orm_app.models.Locations.*" />
+          <option value="orm_app.models.Regions.*" />
+        </list>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>

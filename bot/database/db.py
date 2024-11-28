@@ -82,7 +82,37 @@ async def get_channels():
 async def add_users(telegram_id, first_name, username, full_name):
     try:
         async with aiosqlite.connect(DB_PATH) as db:
-            await db.execute("INSERT INTO rectorate (telegram_id, first_name, username, full_name) VALUES (?, ?, ?, ?)", (telegram_id, first_name, username, full_name))
+            await db.execute("INSERT INTO users (telegram_id, first_name, username, full_name) VALUES (?, ?, ?, ?)", (telegram_id, first_name, username, full_name))
             await db.commit()
     except Exception as e:
         print(f"Error adding channel: {e}")
+
+async def add_users_phone(telegram_id, phone_number):
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("UPDATE users SET phone_number = ? WHERE telegram_id = ? ", ( phone_number, telegram_id))
+            await db.commit()
+    except Exception as e:
+        print(f"Error adding channel: {e}")
+
+async def get_user_by_telegram_id(telegram_id):
+    """Foydalanuvchining ma'lumotlarini bazadan olish."""
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            cursor = await db.execute("SELECT first_name, username, full_name, phone_number FROM users WHERE telegram_id = ?", (telegram_id,))
+            user = await cursor.fetchone()
+            return user  # Agar ma'lumot topilmasa, None qaytadi
+    except Exception as e:
+        print(f"Error fetching user: {e}")
+        return None
+
+async def get_full_users(telegram_id):
+    """Foydalanuvchining ma'lumotlarini bazadan olish."""
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            cursor = await db.execute("SELECT first_name, username, full_name, phone_number FROM users WHERE telegram_id = ?", (telegram_id,))
+            user = await cursor.fetchone()
+            return user  # Agar ma'lumot topilmasa, None qaytadi
+    except Exception as e:
+        print(f"Error fetching user: {e}")
+        return None

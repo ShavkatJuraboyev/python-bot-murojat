@@ -3,6 +3,7 @@ from aiogram import Router, Bot, Dispatcher
 from aiogram.filters import Command
 from database.db import add_channel, add_rectorate
 from utils.auth import is_admin
+from utils.membership import check_membership
 
 router = Router()  # Router yaratish
 

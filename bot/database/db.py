@@ -60,6 +60,15 @@ async def get_rectorate():
     except Exception as e:
         print(f"Error getting channels: {e}")
         return []
+    
+async def get_rectorate_one(tg_id):
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            cursor = await db.execute("SELECT name FROM rectorate WHERE tg_id = ?", (tg_id,))
+            return await cursor.fetchone()
+    except Exception as e:
+        print(f"Error getting channels: {e}")
+        return []
 
 async def add_channel(name, link):
     try:

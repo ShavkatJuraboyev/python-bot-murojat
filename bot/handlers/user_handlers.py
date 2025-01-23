@@ -12,10 +12,12 @@ def escape_markdown(text: str) -> str:
     return ''.join(f"\\{char}" if char in escape_chars else char for char in text)
 
 router = Router()  # Router yaratish
+
 # Holatlar guruhi
 class UserStates(StatesGroup):
     waiting_for_message_content = State()
 user_data = {}
+
 # /start komandasi uchun handler
 async def start_handler(message: types.Message, bot: Bot):
     telegram_id = message.chat.id

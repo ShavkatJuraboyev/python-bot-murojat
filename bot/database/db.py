@@ -44,23 +44,7 @@ async def init_db():
 
 
 
-async def add_rectorate(name, tg_id):
-    try:
-        async with aiosqlite.connect(DB_PATH) as db:
-            await db.execute("INSERT INTO rectorate (name, tg_id) VALUES (?, ?)", (name, tg_id))
-            await db.commit()
-    except Exception as e:
-        print(f"Error adding channel: {e}")
 
-async def get_rectorate():
-    try:
-        async with aiosqlite.connect(DB_PATH) as db:
-            cursor = await db.execute("SELECT name, tg_id FROM rectorate")
-            return await cursor.fetchall()
-    except Exception as e:
-        print(f"Error getting channels: {e}")
-        return []
-    
 async def get_rectorate_one(tg_id):
     try:
         async with aiosqlite.connect(DB_PATH) as db:
@@ -69,24 +53,6 @@ async def get_rectorate_one(tg_id):
     except Exception as e:
         print(f"Error getting channels: {e}")
         return []
-
-async def add_channel(name, link):
-    try:
-        async with aiosqlite.connect(DB_PATH) as db:
-            await db.execute("INSERT INTO channels (name, link) VALUES (?, ?)", (name, link))
-            await db.commit()
-    except Exception as e:
-        print(f"Error adding video: {e}")
-
-async def get_channels():
-    try:
-        async with aiosqlite.connect(DB_PATH) as db:
-            cursor = await db.execute("SELECT name, link FROM channels")
-            return await cursor.fetchall()
-    except Exception as e:
-        print(f"Error getting videos: {e}")
-        return []
-    
 
 async def add_users(telegram_id, first_name, username, full_name):
     try:
@@ -125,3 +91,81 @@ async def get_full_users(telegram_id):
     except Exception as e:
         print(f"Error fetching user: {e}")
         return None
+    
+
+async def get_users():
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            cursor = await db.execute("SELECT telegram_id, first_name, username, full_name, phone_number FROM users")
+            return await cursor.fetchall()
+    except Exception as e:
+        print(f"Error getting users: {e}")
+        return []
+   
+# rectorate CRUD
+async def get_rectorate():
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            cursor = await db.execute("SELECT name, tg_id FROM rectorate")
+            return await cursor.fetchall()
+    except Exception as e:
+        print(f"Error getting channels: {e}")
+        return []
+
+async def add_rectorate(name, tg_id):
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("INSERT INTO rectorate (name, tg_id) VALUES (?, ?)", (name, tg_id))
+            await db.commit()
+    except Exception as e:
+        print(f"Error adding channel: {e}")
+
+async def update_rectorate(old_name, new_name, new_tg_id):
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("UPDATE rectorate SET name = ?, tg_id = ? WHERE name = ?", (new_name, new_tg_id, old_name),)
+            await db.commit()
+    except Exception as e:
+        print(f"Error updating channel: {e}")
+
+async def delete_rectorate(tg_id):
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("DELETE FROM rectorate WHERE tg_id = ?", (tg_id,))
+            await db.commit()
+    except Exception as e:
+        print(f"Error deleting channel: {e}")
+
+# channels CRUD
+async def get_channels():
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            cursor = await db.execute("SELECT name, link FROM channels")
+            return await cursor.fetchall()
+    except Exception as e:
+        print(f"Error getting videos: {e}")
+        return []
+
+async def add_channel(name, link):
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("INSERT INTO channels (name, link) VALUES (?, ?)", (name, link))
+            await db.commit()
+    except Exception as e:
+        print(f"Error adding video: {e}")
+
+async def update_channel(name, link):
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("UPDATE channels SET name = ? WHERE link = ?", (name, link))
+            await db.commit()
+    except Exception as e:
+        print(f"Error updating video: {e}")
+
+async def delete_channel(link):
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("DELETE FROM channels WHERE link = ?", (link,))
+            await db.commit()
+    except Exception as e:
+        print(f"Error deleting video: {e}")

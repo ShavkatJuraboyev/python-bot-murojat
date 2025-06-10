@@ -24,7 +24,7 @@ async def start_admin(message: types.Message, bot: Bot):
         [types.InlineKeyboardButton(text=f"👮 Adminlar", callback_data=f"list_admins"),
          types.InlineKeyboardButton(text=f"👥 Foydalanuvchilar", callback_data=f"list_users")],
         [types.InlineKeyboardButton(text=f"📢 Telgram kanallar", callback_data=f"list_channels"),
-        types.InlineKeyboardButton(text="🗣 Bo'limlar", callback_data=f"list_rectorate")],
+        types.InlineKeyboardButton(text="🧑‍💻 Xodim", callback_data=f"list_rectorate")],
         [types.InlineKeyboardButton(text=f"📝 Ariza turlari", callback_data=f"list_request_types")]
     ]
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -40,7 +40,7 @@ async def admin_start_back(callback: types.CallbackQuery):
         [types.InlineKeyboardButton(text=f"👮 Adminlar", callback_data=f"list_admins"),
          types.InlineKeyboardButton(text=f"👥 Foydalanuvchilar", callback_data=f"list_users")],
         [types.InlineKeyboardButton(text=f"📢 Telgram kanallar", callback_data=f"list_channels"),
-        types.InlineKeyboardButton(text="🗣 Bo'limlar", callback_data=f"list_rectorate")],
+        types.InlineKeyboardButton(text="🧑‍💻 Xodim", callback_data=f"list_rectorate")],
         [types.InlineKeyboardButton(text=f"📝 Ariza turlari", callback_data=f"list_request_types")]
     ]
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -225,7 +225,7 @@ async def delete_user_callback(callback: types.CallbackQuery):
     await callback.message.delete()
     await callback.message.answer("✅ Foydalanuvchi o‘chirildi.")
     await cmd_list_users(callback)  # Ro'yxatni yangilash
-    
+
 
 class RektoratStates(StatesGroup):
     waiting_for_name = State()
@@ -242,7 +242,7 @@ async def list_rectorate_callback(callback: types.CallbackQuery):
 
     rectorates = await get_rectorate()
     if not rectorates:
-        return await callback.message.answer("🚫 Hech qanday rektorat mavjud emas.")
+        return await callback.message.answer("🚫 Hech qanday Xodim mavjud emas.")
 
     buttons = [
         [types.InlineKeyboardButton(text=name, callback_data=f"get_rectorate:{tg_id}")]
@@ -250,9 +250,9 @@ async def list_rectorate_callback(callback: types.CallbackQuery):
     ]
     buttons.append([types.InlineKeyboardButton(text="➕ Yangi qo‘shish", callback_data="add_rectorate")])
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
-    await callback.message.answer("🏛 Rektoratlar ro'yxati:", reply_markup=keyboard)
+    await callback.message.answer("🏛 Xodimlar ro'yxati:", reply_markup=keyboard)
 
-# 📄 Bitta rektorat tafsilotlari
+# 📄 Bitta Xodim tafsilotlari
 @router.callback_query(lambda c: c.data.startswith("get_rectorate:"))
 async def get_rectorate_callback(callback: types.CallbackQuery):
     if not await is_admin(callback.from_user.id):
@@ -261,9 +261,9 @@ async def get_rectorate_callback(callback: types.CallbackQuery):
     tg_id = int(callback.data.split(":")[1])
     name = await get_rectorate_one(tg_id)
     if not name:
-        return await callback.message.answer("❌ Rektorat topilmadi.")
+        return await callback.message.answer("❌ Xodim topilmadi.")
 
-    text = f"🏛 *Rektorat ma'lumotlari:*\n\n▪️ Nomi: {name}\n▪️ Telegram ID: `{tg_id}`"
+    text = f"🏛 *Xodim ma'lumotlari:*\n\n▪️ Nomi: {name}\n▪️ Telegram ID: `{tg_id}`"
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
         [types.InlineKeyboardButton(text="✏️ Tahrirlash", callback_data=f"edit_rectorate:{name}:{tg_id}")],
         [types.InlineKeyboardButton(text="🗑 O'chirish", callback_data=f"delete_rectorate:{tg_id}")],
@@ -272,7 +272,7 @@ async def get_rectorate_callback(callback: types.CallbackQuery):
     await callback.message.delete()
     await callback.message.answer(text, parse_mode="Markdown", reply_markup=keyboard)
 
-# 🗑️ Rektoratni o‘chirish
+# 🗑️ Xodimni o‘chirish
 @router.callback_query(lambda c: c.data.startswith("delete_rectorate:"))
 async def delete_rectorate_callback(callback: types.CallbackQuery):
     if not await is_admin(callback.from_user.id):
@@ -280,13 +280,13 @@ async def delete_rectorate_callback(callback: types.CallbackQuery):
     tg_id = int(callback.data.split(":")[1])
     await delete_rectorate(tg_id)
     await callback.message.delete()
-    await callback.message.answer("✅ Rektorat o‘chirildi.")
+    await callback.message.answer("✅ Xodim o‘chirildi.")
     await list_rectorate_callback(callback)
 
-# ➕ Rektorat qo‘shish bosqichi
+# ➕ Xodim qo‘shish bosqichi
 @router.callback_query(lambda c: c.data == "add_rectorate")
 async def add_rectorate_start(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.answer("✏️ Rektorat nomini kiriting:")
+    await callback.message.answer("✏️ Xodim nomini kiriting:")
     await state.set_state(RektoratStates.waiting_for_name)
 
 @router.message(RektoratStates.waiting_for_name)
@@ -302,12 +302,12 @@ async def add_rectorate_tg(message: types.Message, state: FSMContext):
     try:
         tg_id = int(message.text.strip())
         await add_rectorate(name, tg_id)
-        await message.answer("✅ Yangi rektorat qo‘shildi!")
+        await message.answer("✅ Yangi Xodim qo‘shildi!")
     except:
         await message.answer("❌ Telegram ID noto‘g‘ri formatda.")
     await state.clear()
 
-# ✏️ Rektoratni tahrirlash
+# ✏️ Xodimni tahrirlash
 @router.callback_query(lambda c: c.data.startswith("edit_rectorate:"))
 async def edit_rectorate_start(callback: types.CallbackQuery, state: FSMContext):
     _, old_name, old_tg_id = callback.data.split(":")
@@ -329,7 +329,7 @@ async def edit_rectorate_tg(message: types.Message, state: FSMContext):
     try:
         new_tg_id = int(message.text.strip())
         await update_rectorate(old_name, new_name, new_tg_id)
-        await message.answer("✅ Rektorat yangilandi!")
+        await message.answer("✅ Xodim yangilandi!")
     except:
         await message.answer("❌ Telegram ID noto‘g‘ri formatda.")
     await state.clear()

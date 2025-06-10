@@ -118,11 +118,11 @@ async def verify_membership(call: types.CallbackQuery, bot: Bot):
         await call.message.answer("❌ Hali hamma kanal va guruhlarga a'zo bo'lmagansiz. Iltimos, qo'shiling!")
 
 
-# Rektorat ma'lumotlarini ko'rsatish
+# Xodim ma'lumotlarini ko'rsatish
 async def show_rectorate_list(message: types.Message):
     rectorate = await get_rectorate()
     if not rectorate:
-        await message.answer("❌ Rektorat ro'yxati topilmadi.")
+        await message.answer("❌ Xodim ro'yxati topilmadi.")
         return
     buttons = [
         [InlineKeyboardButton(text=name, callback_data=f"rectorate:{tg_id}")]
@@ -149,7 +149,7 @@ async def handle_rectorate_selection(call: CallbackQuery, state: FSMContext):
     ]
     inline_kb = InlineKeyboardMarkup(inline_keyboard=buttons)
     await call.message.answer("✔️ Quyidagi murojaat turini tanlang:", reply_markup=inline_kb)
-    
+
 
 @router.callback_query(lambda call: call.data.startswith("request:type:"))
 async def handle_request_type(call: CallbackQuery, state: FSMContext):
@@ -203,7 +203,7 @@ async def collect_message_content(message: Message, state: FSMContext):
     await message.answer("Murojaatingiz muvaffaqiyatli yuborildi.")
     summary = (
         f"✅ *Murojaat tafsilotlari:*\n\n"
-        f"🔹 Rektorat: {escape_markdown(name)}\n"
+        f"🔹 Xodim: {escape_markdown(name)}\n"
         f"🔹 Murojaat turi: {escape_markdown(request_type)}\n"
         f"🔹 Rol: {escape_markdown(role)}\n"
         f"🔹 Mazmun: {escape_markdown(content)}\n\n"
@@ -212,7 +212,7 @@ async def collect_message_content(message: Message, state: FSMContext):
 
     await message.answer(summary, parse_mode="Markdown")
 
-     # Rektoratga yuborish
+     # Xodimga yuborish
     if rectorate_id:  # agar rectorate_id mavjud bo'lsa
         summary_rectarat = (
             f"✅ *Murojaat tafsilotlari:*\n\n"
@@ -234,7 +234,7 @@ async def collect_message_content(message: Message, state: FSMContext):
         except Exception as e:
             await message.answer(f"❌ Xatolik yuz berdi: {e}")
     else:
-        await message.answer("❌ Rektorat ID topilmadi.")
+        await message.answer("❌ Xodim ID topilmadi.")
 
     # Holatdan chiqish
     await state.clear()

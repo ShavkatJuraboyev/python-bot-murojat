@@ -14,9 +14,9 @@ from utils.auth import is_admin
 router = Router()  # Router yaratish
 
 async def start_admin(message: types.Message, bot: Bot):
-    # if not await is_admin(message.from_user.id):
-    #     await message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
-    #     return
+    if not await is_admin(message.from_user.id):
+        await message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
+        return
 
     await message.answer("👮 Admin panelga xush kelibsiz!")
 
@@ -55,8 +55,8 @@ class AdminStates(StatesGroup):
 # 👥 Barcha adminlar ro'yxati
 @router.callback_query(lambda c: c.data == "list_admins")
 async def list_admins_callback(callback: types.CallbackQuery):
-    # if not await is_admin(callback.from_user.id):
-    #     return await callback.message.reply("❌ Ruxsat yo'q.")
+    if not await is_admin(callback.from_user.id):
+        return await callback.message.reply("❌ Ruxsat yo'q.")
 
     admins = await get_admins()
     if not admins:
@@ -77,8 +77,8 @@ async def list_admins_callback(callback: types.CallbackQuery):
 # 👤 Adminni ko‘rish
 @router.callback_query(lambda c: c.data.startswith("get_admin:"))
 async def get_admin_callback(callback: types.CallbackQuery):
-    # if not await is_admin(callback.from_user.id):
-    #     return await callback.message.reply("❌ Ruxsat yo'q.")
+    if not await is_admin(callback.from_user.id):
+        return await callback.message.reply("❌ Ruxsat yo'q.")
     tg_id = int(callback.data.split(":")[1])
     admins = await get_admins()
     admin = next((a for a in admins if a[0] == tg_id), None)
@@ -97,11 +97,15 @@ async def get_admin_callback(callback: types.CallbackQuery):
 # ➕ Admin qo‘shish boshlanishi
 @router.callback_query(lambda c: c.data == "add_admin")
 async def add_admin_start(callback: types.CallbackQuery, state: FSMContext):
+    if not await is_admin(callback.from_user.id):
+        return await callback.message.reply("❌ Ruxsat yo'q.")
     await callback.message.answer("✏️ Admin to‘liq ismini kiriting:")
     await state.set_state(AdminStates.waiting_for_full_name)
 
 @router.message(AdminStates.waiting_for_full_name)
 async def add_admin_full_name(message: types.Message, state: FSMContext):
+    if not await is_admin(callback.from_user.id):
+        return await callback.message.reply("❌ Ruxsat yo'q.")
     await state.update_data(full_name=message.text.strip())
     await message.answer("📥 Admin Telegram ID sini kiriting:")
     await state.set_state(AdminStates.waiting_for_tg_id)
@@ -286,17 +290,23 @@ async def delete_rectorate_callback(callback: types.CallbackQuery):
 # ➕ Xodim qo‘shish bosqichi
 @router.callback_query(lambda c: c.data == "add_rectorate")
 async def add_rectorate_start(callback: types.CallbackQuery, state: FSMContext):
+    if not await is_admin(callback.from_user.id):
+        return await callback.message.reply("❌ Ruxsat yo'q.")
     await callback.message.answer("✏️ Xodim nomini kiriting:")
     await state.set_state(RektoratStates.waiting_for_name)
 
 @router.message(RektoratStates.waiting_for_name)
 async def add_rectorate_name(message: types.Message, state: FSMContext):
+    if not await is_admin(message.from_user.id):
+        return await message.reply("❌ Ruxsat yo'q.")
     await state.update_data(name=message.text.strip())
     await message.answer("📥 Telegram ID ni kiriting:")
     await state.set_state(RektoratStates.waiting_for_tg_id)
 
 @router.message(RektoratStates.waiting_for_tg_id)
 async def add_rectorate_tg(message: types.Message, state: FSMContext):
+    if not await is_admin(message.from_user.id):
+        return await message.reply("❌ Ruxsat yo'q.")
     data = await state.get_data()
     name = data['name']
     try:
@@ -310,6 +320,8 @@ async def add_rectorate_tg(message: types.Message, state: FSMContext):
 # ✏️ Xodimni tahrirlash
 @router.callback_query(lambda c: c.data.startswith("edit_rectorate:"))
 async def edit_rectorate_start(callback: types.CallbackQuery, state: FSMContext):
+    if not await is_admin(callback.from_user.id):
+        return await callback.message.reply("❌ Ruxsat yo'q.")
     _, old_name, old_tg_id = callback.data.split(":")
     await state.update_data(old_name=old_name)
     await callback.message.answer(f"✏️ Yangi nomini kiriting (eski: {old_name}):")
@@ -317,12 +329,16 @@ async def edit_rectorate_start(callback: types.CallbackQuery, state: FSMContext)
 
 @router.message(RektoratStates.editing_new_name)
 async def edit_rectorate_name(message: types.Message, state: FSMContext):
+    if not await is_admin(message.from_user.id):
+        return await message.reply("❌ Ruxsat yo'q.")
     await state.update_data(new_name=message.text.strip())
     await message.answer("📥 Yangi Telegram ID ni kiriting:")
     await state.set_state(RektoratStates.editing_new_tg_id)
 
 @router.message(RektoratStates.editing_new_tg_id)
 async def edit_rectorate_tg(message: types.Message, state: FSMContext):
+    if not await is_admin(message.from_user.id):
+        return await message.reply("❌ Ruxsat yo'q.")
     data = await state.get_data()
     old_name = data['old_name']
     new_name = data['new_name']
@@ -345,6 +361,7 @@ class RequestTypeStates(StatesGroup):
 # 📋 Murojaat turlari ro'yxati
 @router.callback_query(lambda c: c.data == "list_request_types")
 async def list_request_types_callback(callback: types.CallbackQuery):
+
     if not await is_admin(callback.from_user.id):
         return await callback.message.reply("❌ Ruxsat yo'q.")
 
@@ -367,6 +384,8 @@ async def list_request_types_callback(callback: types.CallbackQuery):
 # 🔍 Bitta murojaat turini ko‘rish
 @router.callback_query(lambda c: c.data.startswith("get_request_type:"))
 async def get_request_type_callback(callback: types.CallbackQuery):
+    if not await is_admin(callback.from_user.id):
+        return await callback.message.reply("❌ Ruxsat yo‘q.")
     name = callback.data.split(":")[1]
     text = f"📄 *Murojaat turi:*\n\n▪️ Nomi: {name}"
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
@@ -380,11 +399,15 @@ async def get_request_type_callback(callback: types.CallbackQuery):
 # ➕ Yangi murojaat turi qo‘shish
 @router.callback_query(lambda c: c.data == "add_request_type")
 async def add_request_type_start(callback: types.CallbackQuery, state: FSMContext):
+    if not await is_admin(callback.from_user.id):
+        return await callback.message.reply("❌ Ruxsat yo‘q.")
     await callback.message.answer("✏️ Murojaat turi nomini kiriting:")
     await state.set_state(RequestTypeStates.waiting_for_name)
 
 @router.message(RequestTypeStates.waiting_for_name)
 async def add_request_type_save(message: types.Message, state: FSMContext):
+    if not await is_admin(message.from_user.id):
+        return await message.reply("❌ Ruxsat yo‘q.")
     name = message.text.strip()
     await add_request_type(name)
     await message.answer("✅ Murojaat turi qo‘shildi!")
@@ -393,6 +416,8 @@ async def add_request_type_save(message: types.Message, state: FSMContext):
 # ✏️ Murojaat turini tahrirlash
 @router.callback_query(lambda c: c.data.startswith("edit_request_type:"))
 async def edit_request_type_start(callback: types.CallbackQuery, state: FSMContext):
+    if not await is_admin(callback.from_user.id):
+        return await callback.message.reply("❌ Ruxsat yo‘q.")
     old_name = callback.data.split(":")[1]
     await state.update_data(old_name=old_name)
     await callback.message.answer(f"✏️ Yangi nomini kiriting (eski: {old_name}):")
@@ -400,6 +425,8 @@ async def edit_request_type_start(callback: types.CallbackQuery, state: FSMConte
 
 @router.message(RequestTypeStates.editing_new_name)
 async def edit_request_type_save(message: types.Message, state: FSMContext):
+    if not await is_admin(message.from_user.id):
+        return await message.reply("❌ Ruxsat yo‘q.")
     data = await state.get_data()
     old_name = data['old_name']
     new_name = message.text.strip()
@@ -410,6 +437,8 @@ async def edit_request_type_save(message: types.Message, state: FSMContext):
 # 🗑 Murojaat turini o‘chirish
 @router.callback_query(lambda c: c.data.startswith("delete_request_type:"))
 async def delete_request_type_callback(callback: types.CallbackQuery):
+    if not await is_admin(callback.from_user.id):
+        return await callback.message.reply("❌ Ruxsat yo‘q.")
     name = callback.data.split(":")[1]
     await delete_request_type(name)
     await callback.message.delete()
@@ -448,6 +477,8 @@ async def list_channels_callback(callback: types.CallbackQuery):
 # 🔍 Bitta kanal ma'lumotlari
 @router.callback_query(lambda c: c.data.startswith("get_channel:"))
 async def get_channel_callback(callback: types.CallbackQuery):
+    if not await is_admin(callback.from_user.id):
+        return await callback.message.reply("❌ Ruxsat yo‘q.")
     link = callback.data.split(":", 1)[1]
     channels = await get_channels()
     channel = next((c for c in channels if c[1] == link), None)
@@ -466,17 +497,23 @@ async def get_channel_callback(callback: types.CallbackQuery):
 # ➕ Kanal qo‘shish boshlanishi
 @router.callback_query(lambda c: c.data == "add_channel")
 async def add_channel_start(callback: types.CallbackQuery, state: FSMContext):
+    if not await is_admin(callback.from_user.id):
+        return await callback.message.reply("❌ Ruxsat yo‘q.")
     await callback.message.answer("✏️ Kanal nomini kiriting:")
     await state.set_state(ChannelStates.waiting_for_name)
 
 @router.message(ChannelStates.waiting_for_name)
 async def add_channel_name(message: types.Message, state: FSMContext):
+    if not await is_admin(message.from_user.id):
+        return await message.reply("❌ Ruxsat yo‘q.")
     await state.update_data(name=message.text.strip())
     await message.answer("📥 Kanal havolasini (https://...) kiriting:")
     await state.set_state(ChannelStates.waiting_for_link)
 
 @router.message(ChannelStates.waiting_for_link)
 async def add_channel_link(message: types.Message, state: FSMContext):
+    if not await is_admin(message.from_user.id):
+        return await message.reply("❌ Ruxsat yo‘q.")
     data = await state.get_data()
     name = data['name']
     link = message.text.strip()
@@ -487,6 +524,8 @@ async def add_channel_link(message: types.Message, state: FSMContext):
 # ✏️ Kanalni tahrirlash
 @router.callback_query(lambda c: c.data.startswith("edit_channel:"))
 async def edit_channel_start(callback: types.CallbackQuery, state: FSMContext):
+    if not await is_admin(callback.from_user.id):
+        return await callback.message.reply("❌ Ruxsat yo‘q.")
     old_link = callback.data.split(":")[1]
     await state.update_data(old_link=old_link)
     await callback.message.answer("✏️ Yangi nomini kiriting:")
@@ -494,6 +533,8 @@ async def edit_channel_start(callback: types.CallbackQuery, state: FSMContext):
 
 @router.message(ChannelStates.editing_new_name)
 async def edit_channel_save(message: types.Message, state: FSMContext):
+    if not await is_admin(message.from_user.id):
+        return await message.reply("❌ Ruxsat yo‘q.")
     data = await state.get_data()
     old_link = data['old_link']
     new_name = message.text.strip()
@@ -504,6 +545,8 @@ async def edit_channel_save(message: types.Message, state: FSMContext):
 # 🗑 Kanalni o‘chirish
 @router.callback_query(lambda c: c.data.startswith("delete_channel:"))
 async def delete_channel_callback(callback: types.CallbackQuery):
+    if not await is_admin(callback.from_user.id):
+        return await callback.message.reply("❌ Ruxsat yo‘q.")
     link = callback.data.split(":", 1)[1]
     await delete_channel(link)
     await callback.message.delete()

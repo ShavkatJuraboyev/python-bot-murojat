@@ -14,9 +14,9 @@ from utils.auth import is_admin
 router = Router()  # Router yaratish
 
 async def start_admin(message: types.Message, bot: Bot):
-    if not await is_admin(message.from_user.id):
-        await message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
-        return
+    # if not await is_admin(message.from_user.id):
+    #     await message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
+    #     return
 
     await message.answer("👮 Admin panelga xush kelibsiz!")
 

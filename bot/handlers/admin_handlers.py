@@ -104,8 +104,8 @@ async def add_admin_start(callback: types.CallbackQuery, state: FSMContext):
 
 @router.message(AdminStates.waiting_for_full_name)
 async def add_admin_full_name(message: types.Message, state: FSMContext):
-    if not await is_admin(callback.from_user.id):
-        return await callback.message.reply("❌ Ruxsat yo'q.")
+    if not await is_admin(message.from_user.id):
+        return await message.reply("❌ Ruxsat yo‘q.")
     await state.update_data(full_name=message.text.strip())
     await message.answer("📥 Admin Telegram ID sini kiriting:")
     await state.set_state(AdminStates.waiting_for_tg_id)

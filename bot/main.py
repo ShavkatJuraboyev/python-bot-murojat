@@ -6,12 +6,12 @@ from handlers.admin_handlers import register_admin_handlers
 from handlers.user_handlers import register_user_handlers
 
 # Bot tokenini o'rnatish
-BOT_TOKEN = "5131381239:AAHm0l1BmMt4nIpw3mKBfvOrtK_eZ2pooPc"
+BOT_TOKEN = "6299868793:AAF4HaBzPZAFuwMznn6RJFnvfsrr8q-Ergw"
 
 async def main():
     # Bot va Dispatcher obyektlarini yaratish
     bot = Bot(token=BOT_TOKEN)
-    dp = Dispatcher(storage=MemoryStorage())
+    dp = Dispatcher(storage=MemoryStorage()) 
     
     # Ma'lumotlar bazasini ishga tushirish
     print("Initializing database...")

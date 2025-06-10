@@ -1,6 +1,6 @@
 from aiogram import F, types, Router, Dispatcher, Bot
 from aiogram.filters import Command
-from database.db import get_channels, add_users, get_rectorate, add_users_phone, get_user_by_telegram_id, get_rectorate_one
+from database.db import get_channels, add_users, get_rectorate, add_users_phone, get_user_by_telegram_id, get_rectorate_one, get_request_types  
 from utils.membership import check_membership
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, Message
 from aiogram.fsm.context import FSMContext
@@ -135,21 +135,21 @@ async def show_rectorate_list(message: types.Message):
 @router.callback_query(lambda call: call.data.startswith("rectorate:"))
 async def handle_rectorate_selection(call: CallbackQuery, state: FSMContext):
     rectorate_id = call.data.split(":")[1]
-    user_data[call.from_user.id] = {"rectorate_id": rectorate_id}  # Rektoratni saqlash
-
-    # Eski tugmalarni o'chirish
+    user_data[call.from_user.id] = {"rectorate_id": rectorate_id}
     await call.message.delete()
 
+    request_types = await get_request_types()
+    if not request_types:
+        await call.message.answer("❌ Hozircha hech qanday murojaat turi mavjud emas.")
+        return
+
     buttons = [
-        [InlineKeyboardButton(text="Ariza yuborish", callback_data="request:type:Ariza yuborish")],
-        [InlineKeyboardButton(text="Shikoyat qilish", callback_data="request:type:Shikoyat qilish")],
-        [InlineKeyboardButton(text="Taklif qilish", callback_data="request:type:Taklif qilish")],
-        [InlineKeyboardButton(text="Boshqa", callback_data="request:type:Boshqa")]
+        [InlineKeyboardButton(text=type_name[0], callback_data=f"request:type:{type_name[0]}")]
+        for type_name in request_types
     ]
     inline_kb = InlineKeyboardMarkup(inline_keyboard=buttons)
-
     await call.message.answer("✔️ Quyidagi murojaat turini tanlang:", reply_markup=inline_kb)
-
+    
 
 @router.callback_query(lambda call: call.data.startswith("request:type:"))
 async def handle_request_type(call: CallbackQuery, state: FSMContext):

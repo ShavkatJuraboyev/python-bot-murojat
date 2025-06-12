@@ -8,7 +8,7 @@ from database.db import (
     get_channels, add_users,
     add_users_phone, get_user_by_telegram_id,
     get_request_types, get_rectorate_by_request_type, get_super_admins,
-    get_rectorate_one, get_response_status, log_murojaat
+    get_rectorate_one, log_murojaat, log_admin_response
 )
 from utils.membership import check_membership
 
@@ -121,9 +121,11 @@ async def collect_message_content(message: Message, state: FSMContext):
     role = user_data[user_id]["role"]
     content = user_data[user_id]["content"]
 
-    # 🟡 Qaysi xodimga yuborilmoqda
+    # 🟡 Murojaatni logga yozamiz va murojaat_id olamiz
+    murojaat_id = await log_murojaat(user_id, rectorate_id, request_type, role, content)
+    user_data[user_id]["murojaat_id"] = murojaat_id
+
     rectorate_name = await get_rectorate_one(rectorate_id)
-    status = await get_response_status(user_id)
 
     summary = (
         f"📩 *Yangi murojaat*\n\n"
@@ -132,13 +134,12 @@ async def collect_message_content(message: Message, state: FSMContext):
         f"🔗 Username: @{escape_markdown(username or 'yo‘q')}\n"
         f"📌 Murojaat turi: {escape_markdown(request_type)}\n"
         f"📎 Rol: {escape_markdown(role)}\n"
-        f"📝 Matn: {escape_markdown(content)}\n\n"
-        f"👥 Yuborilgan xodim: {escape_markdown(rectorate_name)}\n"
-        f"✅ Holat: {'✅ Javob berilgan' if status == 'answered' else '❗️ Kutilmoqda'}\n\n"
-        f"❗️ *Reply qilib javob yozing, foydalanuvchi ID: {user_id}*"
+        f"📝 Matn: {escape_markdown(content)}\n"
+        f"👨‍💼 Xodim: {escape_markdown(rectorate_name)}\n"
+        f"❗️ *Reply qilib javob yozing, foydalanuvchi ID: {user_id}, murojaat ID: {murojaat_id}*"
     )
 
-    await message.answer("Murojaatingiz yuborildi.")
+    await message.answer("✅ Murojaatingiz yuborildi.")
     await message.bot.send_message(rectorate_id, summary, parse_mode="Markdown")
 
     for admin_id in await get_super_admins():
@@ -149,15 +150,21 @@ async def collect_message_content(message: Message, state: FSMContext):
 
     await state.clear()
     user_data.pop(user_id, None)
-    await log_murojaat(user_id, rectorate_id, request_type, role, content)
 
 
 @router.message(F.text, F.reply_to_message)
 async def forward_reply_to_user(message: Message):
-    if message.reply_to_message and "foydalanuvchi ID" in message.reply_to_message.text:
+    reply_text = message.reply_to_message.text
+
+    if "foydalanuvchi ID" in reply_text and "murojaat ID" in reply_text:
         try:
-            user_id_line = message.reply_to_message.text.split("foydalanuvchi ID:")[-1].strip()
+            # 🆔 foydalanuvchi ID ni ajratib olish
+            user_id_line = reply_text.split("foydalanuvchi ID:")[-1].split(",")[0].strip()
             user_id = int(user_id_line)
+
+            # 📌 murojaat ID ni ajratib olish
+            murojaat_id_line = reply_text.split("murojaat ID:")[-1].strip()
+            murojaat_id = int(murojaat_id_line)
 
             # ➕ foydalanuvchiga javob yuborish
             await message.bot.send_message(
@@ -166,14 +173,14 @@ async def forward_reply_to_user(message: Message):
                 parse_mode="Markdown"
             )
 
-            # ✅ MUHIM: statusni 'answered' qilish
-            from database.db import log_admin_response
-            await log_admin_response(user_id, message.from_user.id, message.text)
+            # ✅ murojaatga javobni logga yozish
+            await log_admin_response(user_id, message.from_user.id, message.text, murojaat_id)
 
             await message.answer("✅ Javob foydalanuvchiga yuborildi.")
         except Exception as e:
             await message.answer(f"❌ Xatolik: {e}")
-
+    else:
+        await message.answer("❗️ Reply xabarda 'foydalanuvchi ID' va 'murojaat ID' yo‘q.")
 
 
 def register_user_handlers(dp: Dispatcher, bot: Bot):

@@ -8,8 +8,8 @@ from database.db import (
     add_rectorate, delete_rectorate, update_rectorate, get_rectorate,
     add_request_type, delete_request_type, update_request_type, get_request_types,
     add_admin, delete_admin, get_admins, get_user_by_telegram_id, delete_user, get_rectorate_one,
-    is_super_admin, get_response_status, set_request_route, get_all_admin_responses,
-    get_all_murojaatlar
+    is_super_admin, set_request_route, get_all_admin_responses,
+    get_all_murojaatlar, get_response_status_by_murojaat_id
 )
 from utils.auth import is_admin
 
@@ -654,47 +654,72 @@ async def monitoring_panel(callback: types.CallbackQuery):
     end = start + MONITOR_PAGE_SIZE
     sliced = murojaatlar[start:end]
 
-    for m in sliced:
-        _, uid, rectorate_id, request_type, role, content, created_at = m
-        user = await get_user_by_telegram_id(uid)
-        rectorate_name = await get_rectorate_one(rectorate_id)
-
-        full_name = user[2] if user else "Noma'lum"
-        phone = user[3] if user else "-"
-        status = await get_response_status(uid)
-        status_text = "✅ Javob berilgan" if status == "answered" else "⏳ Kutilmoqda"
-
-        response = next((r for r in javoblar if r[0] == uid), None)
-        admin_id = response[1] if response else "-"
-        admin_message = response[2] if response else "-"
-        response_time = response[3] if response else "-"
-
-        text = (
-            f"🕒 {created_at}\n"
-            f"👤 {full_name} | 📞 {phone}\n"
-            f"📌 Murojaat turi: {request_type}\n"
-            f"🧾 Rol: {role}\n"
-            f"✉️ Matn: {content}\n"
-            f"👨‍💼 Xodim: {rectorate_name}\n"
-            f"👮 Javob bergan admin: {admin_id}\n"
-            f"🗨️ Javob matni: {admin_message}\n"
-            f"📅 Javob vaqti: {response_time}\n"
-            f"📍 Holat: {status_text}"
-        )
-
-        await callback.message.answer(text)
-
     buttons = []
+    for m in sliced:
+        murojaat_id, uid, rectorate_id, request_type, role, content, created_at = m
+        user = await get_user_by_telegram_id(uid)
+        full_name = user[2] if user else "Noma'lum"
+        status = await get_response_status_by_murojaat_id(murojaat_id)
+        status_text = "✅" if status == "answered" else "⏳"
+        buttons.append([
+            types.InlineKeyboardButton(
+                text=f"{status_text} {full_name} | {request_type}",
+                callback_data=f"view_murojaat:{murojaat_id}"
+            )
+        ])
+
+    nav_buttons = []
     total_pages = (len(murojaatlar) - 1) // MONITOR_PAGE_SIZE + 1
     if page > 0:
-        buttons.append(types.InlineKeyboardButton(text="⬅️ Oldingi", callback_data=f"monitoring:{page - 1}"))
+        nav_buttons.append(types.InlineKeyboardButton(text="⬅️ Oldingi", callback_data=f"monitoring:{page - 1}"))
     if end < len(murojaatlar):
-        buttons.append(types.InlineKeyboardButton(text="➡️ Keyingi", callback_data=f"monitoring:{page + 1}"))
+        nav_buttons.append(types.InlineKeyboardButton(text="➡️ Keyingi", callback_data=f"monitoring:{page + 1}"))
 
-    if buttons:
-        keyboard = types.InlineKeyboardMarkup(inline_keyboard=[buttons])
-        await callback.message.answer("Sahifalarni almashtiring:", reply_markup=keyboard)
+    if nav_buttons:
+        buttons.append(nav_buttons)
 
+    keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
+    await callback.message.answer("📋 Murojaatlar ro‘yxati:", reply_markup=keyboard)
+
+@router.callback_query(lambda c: c.data.startswith("view_murojaat:"))
+async def view_murojaat_detail(callback: types.CallbackQuery):
+    murojaat_id = int(callback.data.split(":")[1])
+    murojaatlar = await get_all_murojaatlar()
+    javoblar = await get_all_admin_responses()
+    murojaat = next((m for m in murojaatlar if m[0] == murojaat_id), None)
+    if not murojaat:
+        return await callback.message.answer("❌ Murojaat topilmadi.")
+
+    murojaat_id, uid, rectorate_id, request_type, role, content, created_at = murojaat
+    user = await get_user_by_telegram_id(uid)
+    rectorate_name = await get_rectorate_one(rectorate_id)
+
+    full_name = user[2] if user else "Noma'lum"
+    phone = user[3] if user else "-"
+
+    status = await get_response_status_by_murojaat_id(murojaat_id)
+    status_text = "✅ Javob berilgan" if status == "answered" else "⏳ Kutilmoqda"
+
+    response = next((r for r in javoblar if r[4] == murojaat_id), None)
+    admin_id = response[1] if response else "-"
+    admin_message = response[2] if response else "-"
+    response_time = response[3] if response else "-"
+
+    text = (
+        f"🆔 Murojaat ID: {murojaat_id}\n"
+        f"🕒 {created_at}\n"
+        f"👤 {full_name} | 📞 {phone}\n"
+        f"📌 Murojaat turi: {request_type}\n"
+        f"🧾 Rol: {role}\n"
+        f"✉️ Matn: {content}\n"
+        f"👨‍💼 Xodim: {rectorate_name}\n"
+        f"👮 Javob bergan admin: {admin_id}\n"
+        f"🗨️ Javob matni: {admin_message}\n"
+        f"📅 Javob vaqti: {response_time}\n"
+        f"📍 Holat: {status_text}"
+    )
+
+    await callback.message.answer(text)
 
 
 # Router yordamida handlerlarni ro'yxatga olish

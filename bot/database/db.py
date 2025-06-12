@@ -77,6 +77,15 @@ async def init_db():
     except Exception as e:
         print(f"Error initializing database: {e}")
 
+async def migrate_add_murojaat_id_column():
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("ALTER TABLE admin_responses ADD COLUMN murojaat_id INTEGER")
+            await db.commit()
+            print("✅ 'murojaat_id' ustuni qo‘shildi.")
+    except Exception as e:
+        print(f"⚠️ Murojaat ID ustunini qo‘shishda xatolik: {e}")
+
 async def get_all_murojaatlar():
     try:
         async with aiosqlite.connect(DB_PATH) as db:
@@ -101,11 +110,15 @@ async def get_all_murojaatlar():
 async def get_all_admin_responses():
     try:
         async with aiosqlite.connect(DB_PATH) as db:
-            cursor = await db.execute("SELECT user_id, admin_id, message, timestamp FROM admin_responses ORDER BY timestamp DESC")
+            cursor = await db.execute("""
+                SELECT user_id, admin_id, message, timestamp, murojaat_id
+                FROM admin_responses ORDER BY timestamp DESC
+            """)
             return await cursor.fetchall()
     except Exception as e:
         print(f"Error fetching admin responses: {e}")
         return []
+
 
 
 # === USERS CRUD ===
@@ -359,16 +372,31 @@ async def is_super_admin(telegram_id: int) -> bool:
         return False
 
 
-async def log_admin_response(user_id: int, admin_id: int, message: str):
+async def log_admin_response(user_id: int, admin_id: int, message: str, murojaat_id: int):
     try:
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("""
-                INSERT INTO admin_responses (user_id, admin_id, message, status)
-                VALUES (?, ?, ?, 'answered')
-            """, (user_id, admin_id, message))
+                INSERT INTO admin_responses (user_id, admin_id, message, murojaat_id, status)
+                VALUES (?, ?, ?, ?, 'answered')
+            """, (user_id, admin_id, message, murojaat_id))
             await db.commit()
     except Exception as e:
         print(f"Error logging admin response: {e}")
+
+
+async def get_response_status_by_murojaat_id(murojaat_id: int):
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            cursor = await db.execute(
+                "SELECT status FROM admin_responses WHERE murojaat_id = ? ORDER BY timestamp DESC LIMIT 1",
+                (murojaat_id,)
+            )
+            result = await cursor.fetchone()
+            return result[0] if result else "pending"
+    except Exception as e:
+        print(f"Error checking response status: {e}")
+        return "pending"
+
 
 
 async def get_response_status(user_id: int):
@@ -437,10 +465,25 @@ async def set_request_route(request_type: str, rectorate_id: int):
 async def log_murojaat(user_id, rectorate_id, request_type, role, content):
     try:
         async with aiosqlite.connect(DB_PATH) as db:
-            await db.execute("""
-            INSERT INTO murojaatlar (user_id, rectorate_id, request_type, role, content)
-            VALUES (?, ?, ?, ?, ?)
+            cursor = await db.execute("""
+                INSERT INTO murojaatlar (user_id, rectorate_id, request_type, role, content)
+                VALUES (?, ?, ?, ?, ?)
             """, (user_id, rectorate_id, request_type, role, content))
             await db.commit()
+            return cursor.lastrowid  # murojaat_id ni qaytaradi
     except Exception as e:
         print(f"Error logging murojaat: {e}")
+        return None
+
+async def get_response_status_by_murojaat_id(murojaat_id: int):
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            cursor = await db.execute(
+                "SELECT status FROM admin_responses WHERE murojaat_id = ? ORDER BY timestamp DESC LIMIT 1",
+                (murojaat_id,)
+            )
+            result = await cursor.fetchone()
+            return result[0] if result else "pending"
+    except Exception as e:
+        print(f"Error checking response status: {e}")
+        return "pending"

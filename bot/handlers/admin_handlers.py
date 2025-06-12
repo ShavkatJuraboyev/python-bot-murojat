@@ -531,13 +531,13 @@ async def edit_request_type_save(message: types.Message, state: FSMContext):
     await state.clear()
 
 # 🗑 Murojaat turini o‘chirish
-@router.callback_query(lambda c: c.data.startswith("delete_request_type:"))
+@router.callback_query(lambda c: c.data.startswith("delete_request_type:")) 
 async def delete_request_type_callback(callback: types.CallbackQuery):
-    if not await is_admin(callback.from_user.id):
-        return await callback.message.reply("❌ Ruxsat yo‘q.")
+    if not await is_admin(callback.from_user.id): 
+        return await callback.message.reply("❌ Ruxsat yo‘q.") 
     
     name = callback.data.split(":")[1]
-    await delete_request_type(name)
+    await delete_request_type(name) 
     
     # Xabarni o‘chiramiz
     await callback.message.delete()

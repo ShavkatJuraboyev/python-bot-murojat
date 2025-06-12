@@ -4,12 +4,12 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from database.db import init_db
 from handlers.admin_handlers import register_admin_handlers
 from handlers.user_handlers import register_user_handlers
-from database.db import migrate_add_murojaat_id_column
+# from database.db import migrate_add_murojaat_id_column
 
 
 
 # Bot tokenini o'rnatish
-BOT_TOKEN = "6299868793:AAF4HaBzPZAFuwMznn6RJFnvfsrr8q-Ergw"
+BOT_TOKEN = "7225379698:AAHDBYAvTHI2_3fro_78p_Dgq-aoz0uPwu4"
 
 async def main():
     # Bot va Dispatcher obyektlarini yaratish
@@ -19,7 +19,7 @@ async def main():
     # Ma'lumotlar bazasini ishga tushirish
     print("Initializing database...")
     await init_db()
-    await migrate_add_murojaat_id_column()
+    # await migrate_add_murojaat_id_column()
     # Handlerlarni ro'yxatga olish
     print("Registering handlers...")
     register_admin_handlers(dp, bot)

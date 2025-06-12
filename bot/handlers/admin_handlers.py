@@ -7,16 +7,18 @@ from database.db import (
     add_channel, delete_channel, update_channel, get_channels,  get_users,
     add_rectorate, delete_rectorate, update_rectorate, get_rectorate,
     add_request_type, delete_request_type, update_request_type, get_request_types,
-    add_admin, delete_admin, get_admins, get_user_by_telegram_id, delete_user, get_rectorate_one
+    add_admin, delete_admin, get_admins, get_user_by_telegram_id, delete_user, get_rectorate_one,
+    is_super_admin, get_response_status, set_request_route, get_all_admin_responses,
+    get_all_murojaatlar
 )
 from utils.auth import is_admin
 
 router = Router()  # Router yaratish
 
 async def start_admin(message: types.Message, bot: Bot):
-    if not await is_admin(message.from_user.id):
-        await message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
-        return
+    # if not await is_admin(message.from_user.id):
+    #     await message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
+    #     return
 
     await message.answer("👮 Admin panelga xush kelibsiz!")
 
@@ -25,23 +27,28 @@ async def start_admin(message: types.Message, bot: Bot):
          types.InlineKeyboardButton(text=f"👥 Foydalanuvchilar", callback_data=f"list_users")],
         [types.InlineKeyboardButton(text=f"📢 Telgram kanallar", callback_data=f"list_channels"),
         types.InlineKeyboardButton(text="🧑‍💻 Xodim", callback_data=f"list_rectorate")],
-        [types.InlineKeyboardButton(text=f"📝 Ariza turlari", callback_data=f"list_request_types")]
+        [types.InlineKeyboardButton(text=f"📝 Ariza turlari", callback_data=f"list_request_types"),
+         types.InlineKeyboardButton(text="📊 Monitoring", callback_data="monitoring")],
+        [types.InlineKeyboardButton(text="🔗 Bog‘lash: Murojaat -> Xodim", callback_data="link_request")]
+         
     ]
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
     await message.answer("Quydagilardan birini tanlang:", reply_markup=keyboard)
 
 async def admin_start_back(callback: types.CallbackQuery):
-    if not await is_admin(callback.message.chat.id):
-        await callback.message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
-        await callback.message.delete()
-        return
+    # if not await is_admin(callback.message.chat.id):
+    #     await callback.message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
+    #     await callback.message.delete()
+    #     return
 
     buttons = [
         [types.InlineKeyboardButton(text=f"👮 Adminlar", callback_data=f"list_admins"),
          types.InlineKeyboardButton(text=f"👥 Foydalanuvchilar", callback_data=f"list_users")],
         [types.InlineKeyboardButton(text=f"📢 Telgram kanallar", callback_data=f"list_channels"),
         types.InlineKeyboardButton(text="🧑‍💻 Xodim", callback_data=f"list_rectorate")],
-        [types.InlineKeyboardButton(text=f"📝 Ariza turlari", callback_data=f"list_request_types")]
+        [types.InlineKeyboardButton(text=f"📝 Ariza turlari", callback_data=f"list_request_types"),
+         types.InlineKeyboardButton(text="📊 Monitoring", callback_data="monitoring")],
+        [types.InlineKeyboardButton(text="🔗 Bog‘lash: Murojaat -> Xodim", callback_data="link_request")]
     ]
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
     await callback.message.answer(text="Quydagilardan birini tanlang", reply_markup=keyboard)
@@ -51,12 +58,15 @@ async def admin_start_back(callback: types.CallbackQuery):
 class AdminStates(StatesGroup):
     waiting_for_full_name = State()
     waiting_for_tg_id = State()
+    waiting_for_is_super = State()
+    waiting_for_request_type = State()
+    waiting_for_rectorate_select = State()
 
 # 👥 Barcha adminlar ro'yxati
 @router.callback_query(lambda c: c.data == "list_admins")
 async def list_admins_callback(callback: types.CallbackQuery):
-    if not await is_admin(callback.from_user.id):
-        return await callback.message.reply("❌ Ruxsat yo'q.")
+    # if not await is_admin(callback.from_user.id):
+    #     return await callback.message.reply("❌ Ruxsat yo'q.")
 
     admins = await get_admins()
     if not admins:
@@ -68,7 +78,7 @@ async def list_admins_callback(callback: types.CallbackQuery):
 
     buttons = [
         [types.InlineKeyboardButton(text=f"👤 {full_name}", callback_data=f"get_admin:{tg_id}")]
-        for tg_id, full_name in admins
+        for tg_id, full_name, _ in admins
     ]
     buttons.append([types.InlineKeyboardButton(text="➕ Admin qo‘shish", callback_data="add_admin")])
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -77,16 +87,19 @@ async def list_admins_callback(callback: types.CallbackQuery):
 # 👤 Adminni ko‘rish
 @router.callback_query(lambda c: c.data.startswith("get_admin:"))
 async def get_admin_callback(callback: types.CallbackQuery):
-    if not await is_admin(callback.from_user.id):
-        return await callback.message.reply("❌ Ruxsat yo'q.")
+    # if not await is_admin(callback.from_user.id):
+    #     return await callback.message.reply("❌ Ruxsat yo'q.")
+
     tg_id = int(callback.data.split(":")[1])
     admins = await get_admins()
     admin = next((a for a in admins if a[0] == tg_id), None)
     if not admin:
         return await callback.message.answer("❌ Admin topilmadi.")
 
-    _, full_name = admin
-    text = f"👤 *Admin:*\n\n▪️ Ism: {full_name}\n▪️ Telegram ID: `{tg_id}`"
+    _, full_name, is_super = admin if len(admin) == 3 else (*admin, 0)
+    status = "👑 Super Admin" if is_super else "👮 Oddiy Admin"
+
+    text = f"👤 *Admin:*\n\n▪️ Ism: {full_name}\n▪️ Telegram ID: `{tg_id}`\n▪️ Status: {status}"
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
         [types.InlineKeyboardButton(text="🗑 O'chirish", callback_data=f"delete_admin:{tg_id}")],
         [types.InlineKeyboardButton(text="⬅️ Ortga", callback_data="list_admins")]
@@ -94,39 +107,54 @@ async def get_admin_callback(callback: types.CallbackQuery):
     await callback.message.delete()
     await callback.message.answer(text, parse_mode="Markdown", reply_markup=keyboard)
 
+@router.callback_query(lambda c: c.data.startswith("is_super:"))
+async def confirm_is_super(callback: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    full_name = data['full_name']
+    tg_id = data['tg_id']
+    is_super = int(callback.data.split(":")[1])
+
+    await add_admin(tg_id, full_name, is_super)
+    await callback.message.edit_text("✅ Admin muvaffaqiyatli qo‘shildi!")
+    await state.clear()
+
+
 # ➕ Admin qo‘shish boshlanishi
 @router.callback_query(lambda c: c.data == "add_admin")
 async def add_admin_start(callback: types.CallbackQuery, state: FSMContext):
-    if not await is_admin(callback.from_user.id):
-        return await callback.message.reply("❌ Ruxsat yo'q.")
+    # if not await is_admin(callback.from_user.id):
+    #     return await callback.message.reply("❌ Ruxsat yo'q.")
     await callback.message.answer("✏️ Admin to‘liq ismini kiriting:")
     await state.set_state(AdminStates.waiting_for_full_name)
 
 @router.message(AdminStates.waiting_for_full_name)
 async def add_admin_full_name(message: types.Message, state: FSMContext):
-    if not await is_admin(message.from_user.id):
-        return await message.reply("❌ Ruxsat yo‘q.")
+    # if not await is_admin(message.from_user.id):
+    #     return await message.reply("❌ Ruxsat yo‘q.")
     await state.update_data(full_name=message.text.strip())
     await message.answer("📥 Admin Telegram ID sini kiriting:")
     await state.set_state(AdminStates.waiting_for_tg_id)
 
 @router.message(AdminStates.waiting_for_tg_id)
 async def add_admin_tg_id(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    full_name = data['full_name']
     try:
         tg_id = int(message.text.strip())
-        await add_admin(tg_id, full_name)
-        await message.answer("✅ Admin qo‘shildi!")
+        await state.update_data(tg_id=tg_id)
+        buttons = [
+            [types.InlineKeyboardButton(text="✅ Ha", callback_data="is_super:1")],
+            [types.InlineKeyboardButton(text="❌ Yo‘q", callback_data="is_super:0")]
+        ]
+        kb = types.InlineKeyboardMarkup(inline_keyboard=buttons)
+        await message.answer("📌 Bu admin Super admin bo‘ladimi?", reply_markup=kb)
+        await state.set_state(AdminStates.waiting_for_is_super)
     except:
         await message.answer("❌ Telegram ID noto‘g‘ri formatda.")
-    await state.clear()
 
 # 🗑 Adminni o‘chirish
 @router.callback_query(lambda c: c.data.startswith("delete_admin:"))
 async def delete_admin_callback(callback: types.CallbackQuery):
-    if not await is_admin(callback.from_user.id):
-        return await callback.message.reply("❌ Ruxsat yo‘q.")
+    # if not await is_admin(callback.from_user.id):
+    #     return await callback.message.reply("❌ Ruxsat yo‘q.")
     tg_id = int(callback.data.split(":")[1])
     await delete_admin(tg_id)
     await callback.message.delete()
@@ -134,6 +162,48 @@ async def delete_admin_callback(callback: types.CallbackQuery):
     await list_admins_callback(callback)
 
     
+# 🔗 Super admin murojaat turini XODIMga bog‘laydi
+@router.callback_query(lambda c: c.data == "link_request")
+async def start_linking(callback: types.CallbackQuery, state: FSMContext):
+    if not await is_super_admin(callback.from_user.id):
+        return await callback.message.reply("❌ Faqat super admin kirishi mumkin.")
+
+    request_types = await get_request_types()
+    if not request_types:
+        return await callback.message.answer("❌ Murojaat turlari topilmadi.")
+
+    buttons = [
+        [types.InlineKeyboardButton(text=name[0], callback_data=f"select_request:{name[0]}")]
+        for name in request_types
+    ]
+    kb = types.InlineKeyboardMarkup(inline_keyboard=buttons)
+    await callback.message.answer("🔗 Qaysi murojaat turiga XODIM bog‘lamoqchisiz:", reply_markup=kb)
+
+@router.callback_query(lambda c: c.data.startswith("select_request:"))
+async def select_request_type(callback: types.CallbackQuery, state: FSMContext):
+    req_type = callback.data.split(":")[1]
+    await state.update_data(request_type=req_type)
+
+    rectorates = await get_rectorate()
+    if not rectorates:
+        return await callback.message.answer("❌ Xodimlar mavjud emas.")
+
+    buttons = [
+        [types.InlineKeyboardButton(text=name, callback_data=f"select_rectorate:{tg_id}")]
+        for name, tg_id in rectorates
+    ]
+    kb = types.InlineKeyboardMarkup(inline_keyboard=buttons)
+    await callback.message.answer(f"✅ {req_type} murojaatini qaysi XODIMga bog‘laysiz:", reply_markup=kb)
+
+@router.callback_query(lambda c: c.data.startswith("select_rectorate:"))
+async def confirm_link(callback: types.CallbackQuery, state: FSMContext):
+    tg_id = int(callback.data.split(":")[1])
+    data = await state.get_data()
+    request_type = data['request_type']
+
+    await set_request_route(request_type, tg_id)
+    await callback.message.edit_text(f"✅ {request_type} turi {tg_id} ID xodimga bog‘landi.")
+    await state.clear()
 
 # Holatni saqlash uchun
 user_page_state = {}
@@ -245,16 +315,22 @@ async def list_rectorate_callback(callback: types.CallbackQuery):
         return await callback.message.reply("❌ Ruxsat yo‘q.")
 
     rectorates = await get_rectorate()
-    if not rectorates:
-        return await callback.message.answer("🚫 Hech qanday Xodim mavjud emas.")
-
+    
     buttons = [
         [types.InlineKeyboardButton(text=name, callback_data=f"get_rectorate:{tg_id}")]
         for name, tg_id in rectorates
     ]
+
+    # 🟢 Har doim tugma qo‘shiladi
     buttons.append([types.InlineKeyboardButton(text="➕ Yangi qo‘shish", callback_data="add_rectorate")])
+
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
+
+    if not rectorates:
+        return await callback.message.answer("🚫 Hech qanday Xodim mavjud emas.", reply_markup=keyboard)
+
     await callback.message.answer("🏛 Xodimlar ro'yxati:", reply_markup=keyboard)
+
 
 # 📄 Bitta Xodim tafsilotlari
 @router.callback_query(lambda c: c.data.startswith("get_rectorate:"))
@@ -553,6 +629,73 @@ async def delete_channel_callback(callback: types.CallbackQuery):
     await callback.message.answer("✅ Kanal o‘chirildi.")
     await list_channels_callback(callback)
     
+MONITOR_PAGE_SIZE = 5
+monitor_cache = {}  # user_id -> (page, murojaatlar, javoblar)
+
+@router.callback_query(lambda c: c.data.startswith("monitoring"))
+async def monitoring_panel(callback: types.CallbackQuery):
+    if not await is_super_admin(callback.from_user.id):
+        return await callback.message.reply("❌ Ruxsat yo‘q. Faqat super adminlar uchun.")
+
+    page = 0
+    if ":" in callback.data:
+        _, page = callback.data.split(":")
+        page = int(page)
+
+    murojaatlar = await get_all_murojaatlar()
+    javoblar = await get_all_admin_responses()
+    user_id = callback.from_user.id
+
+    if not murojaatlar:
+        return await callback.message.answer("📭 Hech qanday murojaat topilmadi.")
+
+    monitor_cache[user_id] = (page, murojaatlar, javoblar)
+    start = page * MONITOR_PAGE_SIZE
+    end = start + MONITOR_PAGE_SIZE
+    sliced = murojaatlar[start:end]
+
+    for m in sliced:
+        _, uid, rectorate_id, request_type, role, content, created_at = m
+        user = await get_user_by_telegram_id(uid)
+        rectorate_name = await get_rectorate_one(rectorate_id)
+
+        full_name = user[2] if user else "Noma'lum"
+        phone = user[3] if user else "-"
+        status = await get_response_status(uid)
+        status_text = "✅ Javob berilgan" if status == "answered" else "⏳ Kutilmoqda"
+
+        response = next((r for r in javoblar if r[0] == uid), None)
+        admin_id = response[1] if response else "-"
+        admin_message = response[2] if response else "-"
+        response_time = response[3] if response else "-"
+
+        text = (
+            f"🕒 {created_at}\n"
+            f"👤 {full_name} | 📞 {phone}\n"
+            f"📌 Murojaat turi: {request_type}\n"
+            f"🧾 Rol: {role}\n"
+            f"✉️ Matn: {content}\n"
+            f"👨‍💼 Xodim: {rectorate_name}\n"
+            f"👮 Javob bergan admin: {admin_id}\n"
+            f"🗨️ Javob matni: {admin_message}\n"
+            f"📅 Javob vaqti: {response_time}\n"
+            f"📍 Holat: {status_text}"
+        )
+
+        await callback.message.answer(text)
+
+    buttons = []
+    total_pages = (len(murojaatlar) - 1) // MONITOR_PAGE_SIZE + 1
+    if page > 0:
+        buttons.append(types.InlineKeyboardButton(text="⬅️ Oldingi", callback_data=f"monitoring:{page - 1}"))
+    if end < len(murojaatlar):
+        buttons.append(types.InlineKeyboardButton(text="➡️ Keyingi", callback_data=f"monitoring:{page + 1}"))
+
+    if buttons:
+        keyboard = types.InlineKeyboardMarkup(inline_keyboard=[buttons])
+        await callback.message.answer("Sahifalarni almashtiring:", reply_markup=keyboard)
+
+
 
 # Router yordamida handlerlarni ro'yxatga olish
 def register_admin_handlers(dp: Dispatcher, bot: Bot):

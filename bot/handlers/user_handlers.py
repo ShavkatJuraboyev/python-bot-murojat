@@ -8,7 +8,7 @@ from database.db import (
     get_channels, add_users,
     add_users_phone, get_user_by_telegram_id,
     get_request_types, get_rectorate_by_request_type, get_super_admins,
-    get_rectorate_one, log_murojaat, log_admin_response
+    get_rectorate_one, log_murojaat, log_admin_response, get_response_status_by_murojaat_id
 )
 from utils.membership import check_membership
 
@@ -82,6 +82,7 @@ async def verify_membership(call: CallbackQuery, bot: Bot):
         await call.message.answer("✅ Murojaat turini tanlang:", reply_markup=kb)
     else:
         await call.message.answer("❌ Hali hamma kanalga obuna emassiz.")
+
 
 @router.callback_query(lambda c: c.data.startswith("request_type:"))
 async def handle_request_type(call: CallbackQuery, state: FSMContext):
@@ -166,6 +167,11 @@ async def forward_reply_to_user(message: Message):
             murojaat_id_line = reply_text.split("murojaat ID:")[-1].strip()
             murojaat_id = int(murojaat_id_line)
 
+            # ✅ Avval javob berilganmi — tekshiramiz
+            status = await get_response_status_by_murojaat_id(murojaat_id)
+            if status == "answered":
+                return await message.answer("❗️ Bu murojaatga allaqachon javob berilgan.")
+
             # ➕ foydalanuvchiga javob yuborish
             await message.bot.send_message(
                 user_id,
@@ -181,6 +187,7 @@ async def forward_reply_to_user(message: Message):
             await message.answer(f"❌ Xatolik: {e}")
     else:
         await message.answer("❗️ Reply xabarda 'foydalanuvchi ID' va 'murojaat ID' yo‘q.")
+
 
 
 def register_user_handlers(dp: Dispatcher, bot: Bot):

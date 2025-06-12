@@ -132,14 +132,7 @@ async def get_users():
         print(f"Error getting users: {e}")
         return []
 
-async def get_user_by_telegram_id(telegram_id):
-    try:
-        async with aiosqlite.connect(DB_PATH) as db:
-            cursor = await db.execute("SELECT first_name, username, full_name, phone_number FROM users WHERE telegram_id = ?", (telegram_id,))
-            return await cursor.fetchone()
-    except Exception as e:
-        print(f"Error fetching user: {e}")
-        return None
+
 
 async def add_users(telegram_id, first_name, username, full_name):
     try:
@@ -253,13 +246,7 @@ async def delete_channel(link):
 
 
 
-async def add_users_phone(telegram_id, phone_number):
-    try:
-        async with aiosqlite.connect(DB_PATH) as db:
-            await db.execute("UPDATE users SET phone_number = ? WHERE telegram_id = ? ", ( phone_number, telegram_id))
-            await db.commit()
-    except Exception as e:
-        print(f"Error adding channel: {e}")
+
 
 async def get_user_by_telegram_id(telegram_id):
     """Foydalanuvchining ma'lumotlarini bazadan olish."""
@@ -271,7 +258,7 @@ async def get_user_by_telegram_id(telegram_id):
     except Exception as e:
         print(f"Error fetching user: {e}")
         return None
-
+    
 async def get_full_users(telegram_id):
     """Foydalanuvchining ma'lumotlarini bazadan olish."""
     try:
@@ -371,7 +358,6 @@ async def is_super_admin(telegram_id: int) -> bool:
         print(f"Error checking super admin: {e}")
         return False
 
-
 async def log_admin_response(user_id: int, admin_id: int, message: str, murojaat_id: int):
     try:
         async with aiosqlite.connect(DB_PATH) as db:
@@ -411,19 +397,6 @@ async def get_response_status(user_id: int):
     except Exception as e:
         print(f"Error checking response status: {e}")
         return "pending"
-
-
-
-async def is_super_admin(telegram_id: int) -> bool:
-    """Foydalanuvchi super adminmi yoki yo‘qmi — tekshiradi."""
-    try:
-        async with aiosqlite.connect(DB_PATH) as db:
-            cursor = await db.execute("SELECT is_super FROM admins WHERE telegram_id = ?", (telegram_id,))
-            result = await cursor.fetchone()
-            return result and result[0] == 1
-    except Exception as e:
-        print(f"Error checking super admin: {e}")
-        return False
 
 
 async def set_request_route(request_type: str, rectorate_id: int):
@@ -474,16 +447,3 @@ async def log_murojaat(user_id, rectorate_id, request_type, role, content):
     except Exception as e:
         print(f"Error logging murojaat: {e}")
         return None
-
-async def get_response_status_by_murojaat_id(murojaat_id: int):
-    try:
-        async with aiosqlite.connect(DB_PATH) as db:
-            cursor = await db.execute(
-                "SELECT status FROM admin_responses WHERE murojaat_id = ? ORDER BY timestamp DESC LIMIT 1",
-                (murojaat_id,)
-            )
-            result = await cursor.fetchone()
-            return result[0] if result else "pending"
-    except Exception as e:
-        print(f"Error checking response status: {e}")
-        return "pending"

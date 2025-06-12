@@ -16,9 +16,9 @@ from utils.auth import is_admin
 router = Router()  # Router yaratish
 
 async def start_admin(message: types.Message, bot: Bot):
-    # if not await is_admin(message.from_user.id):
-    #     await message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
-    #     return
+    if not await is_admin(message.from_user.id):
+        await message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
+        return
 
     await message.answer("👮 Admin panelga xush kelibsiz!")
 
@@ -36,10 +36,10 @@ async def start_admin(message: types.Message, bot: Bot):
     await message.answer("Quydagilardan birini tanlang:", reply_markup=keyboard)
 
 async def admin_start_back(callback: types.CallbackQuery):
-    # if not await is_admin(callback.message.chat.id):
-    #     await callback.message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
-    #     await callback.message.delete()
-    #     return
+    if not await is_admin(callback.message.chat.id):
+        await callback.message.reply("❌ Ushbu buyruq faqat adminlar uchun!")
+        await callback.message.delete()
+        return
 
     buttons = [
         [types.InlineKeyboardButton(text=f"👮 Adminlar", callback_data=f"list_admins"),
@@ -65,8 +65,8 @@ class AdminStates(StatesGroup):
 # 👥 Barcha adminlar ro'yxati
 @router.callback_query(lambda c: c.data == "list_admins")
 async def list_admins_callback(callback: types.CallbackQuery):
-    # if not await is_admin(callback.from_user.id):
-    #     return await callback.message.reply("❌ Ruxsat yo'q.")
+    if not await is_admin(callback.from_user.id):
+        return await callback.message.reply("❌ Ruxsat yo'q.")
 
     admins = await get_admins()
     if not admins:
@@ -81,14 +81,16 @@ async def list_admins_callback(callback: types.CallbackQuery):
         for tg_id, full_name, _ in admins
     ]
     buttons.append([types.InlineKeyboardButton(text="➕ Admin qo‘shish", callback_data="add_admin")])
+    buttons.append([types.InlineKeyboardButton(text="⬅️ Ortga", callback_data="back_admin")])
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
+    await callback.message.delete()
     await callback.message.answer("👥 Adminlar ro'yxati:", reply_markup=keyboard)
 
 # 👤 Adminni ko‘rish
 @router.callback_query(lambda c: c.data.startswith("get_admin:"))
 async def get_admin_callback(callback: types.CallbackQuery):
-    # if not await is_admin(callback.from_user.id):
-    #     return await callback.message.reply("❌ Ruxsat yo'q.")
+    if not await is_admin(callback.from_user.id):
+        return await callback.message.reply("❌ Ruxsat yo'q.")
 
     tg_id = int(callback.data.split(":")[1])
     admins = await get_admins()
@@ -115,22 +117,28 @@ async def confirm_is_super(callback: types.CallbackQuery, state: FSMContext):
     is_super = int(callback.data.split(":")[1])
 
     await add_admin(tg_id, full_name, is_super)
-    await callback.message.edit_text("✅ Admin muvaffaqiyatli qo‘shildi!")
+    await callback.message.delete()
+    keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
+        [types.InlineKeyboardButton(text="⬅️ Ortga", callback_data="list_admins")]
+    ])
+    await callback.message.delete()
+    await callback.message.answer("✅ Admin muvaffaqiyatli qo‘shildi!", reply_markup=keyboard)
     await state.clear()
 
 
 # ➕ Admin qo‘shish boshlanishi
 @router.callback_query(lambda c: c.data == "add_admin")
 async def add_admin_start(callback: types.CallbackQuery, state: FSMContext):
-    # if not await is_admin(callback.from_user.id):
-    #     return await callback.message.reply("❌ Ruxsat yo'q.")
+    if not await is_admin(callback.from_user.id):
+        return await callback.message.reply("❌ Ruxsat yo'q.")
+    await callback.message.delete()
     await callback.message.answer("✏️ Admin to‘liq ismini kiriting:")
     await state.set_state(AdminStates.waiting_for_full_name)
 
 @router.message(AdminStates.waiting_for_full_name)
 async def add_admin_full_name(message: types.Message, state: FSMContext):
-    # if not await is_admin(message.from_user.id):
-    #     return await message.reply("❌ Ruxsat yo‘q.")
+    if not await is_admin(message.from_user.id):
+        return await message.reply("❌ Ruxsat yo‘q.")
     await state.update_data(full_name=message.text.strip())
     await message.answer("📥 Admin Telegram ID sini kiriting:")
     await state.set_state(AdminStates.waiting_for_tg_id)
@@ -176,7 +184,9 @@ async def start_linking(callback: types.CallbackQuery, state: FSMContext):
         [types.InlineKeyboardButton(text=name[0], callback_data=f"select_request:{name[0]}")]
         for name in request_types
     ]
+    buttons.append([types.InlineKeyboardButton(text="⬅️ Ortga", callback_data="back_admin")])
     kb = types.InlineKeyboardMarkup(inline_keyboard=buttons)
+    await callback.message.delete()
     await callback.message.answer("🔗 Qaysi murojaat turiga XODIM bog‘lamoqchisiz:", reply_markup=kb)
 
 @router.callback_query(lambda c: c.data.startswith("select_request:"))
@@ -192,7 +202,9 @@ async def select_request_type(callback: types.CallbackQuery, state: FSMContext):
         [types.InlineKeyboardButton(text=name, callback_data=f"select_rectorate:{tg_id}")]
         for name, tg_id in rectorates
     ]
+    buttons.append([types.InlineKeyboardButton(text="⬅️ Ortga", callback_data="link_request")])
     kb = types.InlineKeyboardMarkup(inline_keyboard=buttons)
+    await callback.message.delete()
     await callback.message.answer(f"✅ {req_type} murojaatini qaysi XODIMga bog‘laysiz:", reply_markup=kb)
 
 @router.callback_query(lambda c: c.data.startswith("select_rectorate:"))
@@ -257,8 +269,9 @@ async def show_users_page(message_obj: types.Message, user_id: int, page: int = 
 
     if nav_buttons:
         buttons.append(nav_buttons)
-
+    buttons.append([types.InlineKeyboardButton(text="⬅️ Ortga", callback_data="back_admin")])
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
+    await message_obj.delete()
     await message_obj.answer(text, reply_markup=keyboard, parse_mode="HTML")
 
 # 👤 Bitta foydalanuvchi ma'lumotini olish
@@ -454,7 +467,9 @@ async def list_request_types_callback(callback: types.CallbackQuery):
         for name in types_list
     ]
     buttons.append([types.InlineKeyboardButton(text="➕ Qo‘shish", callback_data="add_request_type")])
+    buttons.append([types.InlineKeyboardButton(text="⬅️ Ortga", callback_data="back_admin")])
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
+    await callback.message.delete()
     await callback.message.answer("📋 Murojaat turlari:", reply_markup=keyboard)
 
 # 🔍 Bitta murojaat turini ko‘rish
@@ -477,6 +492,7 @@ async def get_request_type_callback(callback: types.CallbackQuery):
 async def add_request_type_start(callback: types.CallbackQuery, state: FSMContext):
     if not await is_admin(callback.from_user.id):
         return await callback.message.reply("❌ Ruxsat yo‘q.")
+    await callback.message.delete()
     await callback.message.answer("✏️ Murojaat turi nomini kiriting:")
     await state.set_state(RequestTypeStates.waiting_for_name)
 
@@ -486,7 +502,11 @@ async def add_request_type_save(message: types.Message, state: FSMContext):
         return await message.reply("❌ Ruxsat yo‘q.")
     name = message.text.strip()
     await add_request_type(name)
-    await message.answer("✅ Murojaat turi qo‘shildi!")
+    await message.delete()
+    keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
+        [types.InlineKeyboardButton(text="⬅️ Ortga", callback_data="list_request_types")]
+    ])
+    await message.answer("✅ Murojaat turi qo‘shildi!", reply_markup=keyboard)
     await state.clear()
 
 # ✏️ Murojaat turini tahrirlash
@@ -515,11 +535,22 @@ async def edit_request_type_save(message: types.Message, state: FSMContext):
 async def delete_request_type_callback(callback: types.CallbackQuery):
     if not await is_admin(callback.from_user.id):
         return await callback.message.reply("❌ Ruxsat yo‘q.")
+    
     name = callback.data.split(":")[1]
     await delete_request_type(name)
+    
+    # Xabarni o‘chiramiz
     await callback.message.delete()
-    await callback.message.answer("✅ Murojaat turi o‘chirildi.")
-    await list_request_types_callback(callback)
+
+    # Faqat bitta javob qaytaramiz
+    keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
+        [types.InlineKeyboardButton(text="⬅️ Ortga", callback_data="list_request_types")]
+    ])
+    await callback.message.answer("✅ Murojaat turi o‘chirildi.", reply_markup=keyboard)
+
+    # Qayta chaqirmaymiz:
+    # await list_request_types_callback(callback)  ❌ SHU YERDA XATO
+
 
 
 class ChannelStates(StatesGroup):
@@ -547,7 +578,9 @@ async def list_channels_callback(callback: types.CallbackQuery):
         for name, link in channels
     ]
     buttons.append([types.InlineKeyboardButton(text="➕ Qo‘shish", callback_data="add_channel")])
+    buttons.append([types.InlineKeyboardButton(text="⬅️ Ortga", callback_data="back_admin")])
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
+    await callback.message.delete()
     await callback.message.answer("📋 Kanallar ro'yxati:", reply_markup=keyboard)
 
 # 🔍 Bitta kanal ma'lumotlari
@@ -575,6 +608,7 @@ async def get_channel_callback(callback: types.CallbackQuery):
 async def add_channel_start(callback: types.CallbackQuery, state: FSMContext):
     if not await is_admin(callback.from_user.id):
         return await callback.message.reply("❌ Ruxsat yo‘q.")
+    await callback.message.delete()
     await callback.message.answer("✏️ Kanal nomini kiriting:")
     await state.set_state(ChannelStates.waiting_for_name)
 
@@ -583,6 +617,7 @@ async def add_channel_name(message: types.Message, state: FSMContext):
     if not await is_admin(message.from_user.id):
         return await message.reply("❌ Ruxsat yo‘q.")
     await state.update_data(name=message.text.strip())
+    await message.delete()
     await message.answer("📥 Kanal havolasini (https://...) kiriting:")
     await state.set_state(ChannelStates.waiting_for_link)
 
@@ -594,7 +629,11 @@ async def add_channel_link(message: types.Message, state: FSMContext):
     name = data['name']
     link = message.text.strip()
     await add_channel(name, link)
-    await message.answer("✅ Kanal qo‘shildi!")
+    await message.delete()
+    keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
+        [types.InlineKeyboardButton(text="⬅️ Ortga", callback_data="list_channels")]
+    ])
+    await message.answer("✅ Kanal qo‘shildi!", reply_markup=keyboard)
     await state.clear()
 
 # ✏️ Kanalni tahrirlash
@@ -677,8 +716,9 @@ async def monitoring_panel(callback: types.CallbackQuery):
 
     if nav_buttons:
         buttons.append(nav_buttons)
-
+    nav_buttons.append(types.InlineKeyboardButton(text="⬅️ Ortga", callback_data="back_admin"))
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
+    await callback.message.delete()
     await callback.message.answer("📋 Murojaatlar ro‘yxati:", reply_markup=keyboard)
 
 @router.callback_query(lambda c: c.data.startswith("view_murojaat:"))

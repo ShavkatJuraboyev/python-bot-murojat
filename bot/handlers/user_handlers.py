@@ -11,6 +11,8 @@ from database.db import (
     get_rectorate_one, log_murojaat, log_admin_response, get_response_status_by_murojaat_id
 )
 from utils.membership import check_membership
+from datetime import datetime
+import pytz
 
 router = Router()
 
@@ -128,6 +130,10 @@ async def collect_message_content(message: Message, state: FSMContext):
 
     rectorate_name = await get_rectorate_one(rectorate_id)
 
+    # Get current time in Tashkent timezone
+    tashkent_tz = pytz.timezone("Asia/Tashkent")
+    current_time = datetime.now(tashkent_tz).strftime("%Y-%m-%d %H:%M:%S")
+
     summary = (
         f"📩 *Yangi murojaat*\n\n"
         f"👤 Ism: {escape_markdown(full_name)}\n"
@@ -136,6 +142,7 @@ async def collect_message_content(message: Message, state: FSMContext):
         f"📌 Murojaat turi: {escape_markdown(request_type)}\n"
         f"📎 Rol: {escape_markdown(role)}\n"
         f"📝 Matn: {escape_markdown(content)}\n"
+        f"🕒 Vaqt: {escape_markdown(current_time)}\n"
         f"👨‍💼 Xodim: {escape_markdown(rectorate_name)}\n"
         f"❗️ *Reply qilib javob yozing, foydalanuvchi ID: {user_id}, murojaat ID: {murojaat_id}*"
     )

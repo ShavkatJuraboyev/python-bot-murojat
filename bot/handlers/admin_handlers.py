@@ -12,6 +12,8 @@ from database.db import (
     get_all_murojaatlar, get_response_status_by_murojaat_id
 )
 from utils.auth import is_admin
+from datetime import datetime
+import pytz
 
 router = Router()  # Router yaratish
 
@@ -758,9 +760,24 @@ async def view_murojaat_detail(callback: types.CallbackQuery):
     admin_message = response[2] if response else "-"
     response_time = response[3] if response else "-"
 
+    # Vaqt zonalari
+    utc = pytz.UTC
+    tashkent_tz = pytz.timezone("Asia/Tashkent")
+
+    # created_at ni Tashkent vaqti zonasiga o‘tkazish
+    created_at_dt = utc.localize(datetime.strptime(created_at, "%Y-%m-%d %H:%M:%S"))
+    created_at_tz = created_at_dt.astimezone(tashkent_tz).strftime("%Y-%m-%d %H:%M:%S")
+
+    # response_time bo‘lsa, uni ham Tashkent vaqti zonasiga o‘tkazish
+    if response_time != "-":
+        response_time_dt = utc.localize(datetime.strptime(response_time, "%Y-%m-%d %H:%M:%S"))
+        response_time_tz = response_time_dt.astimezone(tashkent_tz).strftime("%Y-%m-%d %H:%M:%S")
+    else:
+        response_time_tz = "-"
+
     text = (
         f"🆔 Murojaat ID: {murojaat_id}\n"
-        f"🕒 {created_at}\n"
+        f"🕒 {created_at_tz}\n"
         f"👤 {full_name} | 📞 {phone}\n"
         f"📌 Murojaat turi: {request_type}\n"
         f"🧾 Rol: {role}\n"
@@ -768,17 +785,17 @@ async def view_murojaat_detail(callback: types.CallbackQuery):
         f"👨‍💼 Xodim: {rectorate_name}\n"
         f"👮 Javob bergan admin: {admin_id}\n"
         f"🗨️ Javob matni: {admin_message}\n"
-        f"📅 Javob vaqti: {response_time}\n"
+        f"📅 Javob vaqti: {response_time_tz}\n"
         f"📍 Holat: {status_text}"
     )
 
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
         [types.InlineKeyboardButton(text="⬅️ Ortga", callback_data="monitoring")]
     ])
+
     await callback.message.delete()
     await callback.message.answer(text, reply_markup=keyboard)
-
-
+    
 # Router yordamida handlerlarni ro'yxatga olish
 def register_admin_handlers(dp: Dispatcher, bot: Bot):
     dp.include_router(router)  # Routerni Dispatcherga qo'shish

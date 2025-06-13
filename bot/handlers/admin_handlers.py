@@ -759,7 +759,10 @@ async def view_murojaat_detail(callback: types.CallbackQuery):
         f"📍 Holat: {status_text}"
     )
 
-    await callback.message.answer(text)
+    keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
+        [types.InlineKeyboardButton(text="⬅️ Ortga", callback_data="monitoring")]
+    ])
+    await callback.message.answer(text, reply_markup=keyboard)
 
 
 # Router yordamida handlerlarni ro'yxatga olish

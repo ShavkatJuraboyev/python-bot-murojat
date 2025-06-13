@@ -212,9 +212,11 @@ async def confirm_link(callback: types.CallbackQuery, state: FSMContext):
     tg_id = int(callback.data.split(":")[1])
     data = await state.get_data()
     request_type = data['request_type']
-
+    keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
+        [types.InlineKeyboardButton(text="⬅️ Ortga", callback_data="back_admin")],
+    ])
     await set_request_route(request_type, tg_id)
-    await callback.message.edit_text(f"✅ {request_type} turi {tg_id} ID xodimga bog‘landi.")
+    await callback.message.edit_text(f"✅ {request_type} turi {tg_id} ID xodimga bog‘landi.", reply_markup=keyboard)
     await state.clear()
 
 # Holatni saqlash uchun
@@ -336,12 +338,13 @@ async def list_rectorate_callback(callback: types.CallbackQuery):
 
     # 🟢 Har doim tugma qo‘shiladi
     buttons.append([types.InlineKeyboardButton(text="➕ Yangi qo‘shish", callback_data="add_rectorate")])
+    buttons.append([types.InlineKeyboardButton(text="⬅️ Ortga", callback_data="back_admin")])
 
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
 
     if not rectorates:
         return await callback.message.answer("🚫 Hech qanday Xodim mavjud emas.", reply_markup=keyboard)
-
+    await callback.message.delete()
     await callback.message.answer("🏛 Xodimlar ro'yxati:", reply_markup=keyboard)
 
 
@@ -372,15 +375,20 @@ async def delete_rectorate_callback(callback: types.CallbackQuery):
         return await callback.message.reply("❌ Ruxsat yo‘q.")
     tg_id = int(callback.data.split(":")[1])
     await delete_rectorate(tg_id)
+    
+    keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
+            [types.InlineKeyboardButton(text="⬅️ Ortga", callback_data="list_rectorate")]
+        ])
     await callback.message.delete()
-    await callback.message.answer("✅ Xodim o‘chirildi.")
-    await list_rectorate_callback(callback)
+    await callback.message.answer("✅ Xodim o‘chirildi.", reply_markup=keyboard)
+    # await list_rectorate_callback(callback)
 
 # ➕ Xodim qo‘shish bosqichi
 @router.callback_query(lambda c: c.data == "add_rectorate")
 async def add_rectorate_start(callback: types.CallbackQuery, state: FSMContext):
     if not await is_admin(callback.from_user.id):
         return await callback.message.reply("❌ Ruxsat yo'q.")
+    await callback.message.delete()
     await callback.message.answer("✏️ Xodim nomini kiriting:")
     await state.set_state(RektoratStates.waiting_for_name)
 
@@ -389,6 +397,7 @@ async def add_rectorate_name(message: types.Message, state: FSMContext):
     if not await is_admin(message.from_user.id):
         return await message.reply("❌ Ruxsat yo'q.")
     await state.update_data(name=message.text.strip())
+    await message.delete()
     await message.answer("📥 Telegram ID ni kiriting:")
     await state.set_state(RektoratStates.waiting_for_tg_id)
 
@@ -401,7 +410,11 @@ async def add_rectorate_tg(message: types.Message, state: FSMContext):
     try:
         tg_id = int(message.text.strip())
         await add_rectorate(name, tg_id)
-        await message.answer("✅ Yangi Xodim qo‘shildi!")
+        keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
+            [types.InlineKeyboardButton(text="⬅️ Ortga", callback_data="list_rectorate")]
+        ])
+        await message.delete()
+        await message.answer("✅ Yangi Xodim qo‘shildi!", reply_markup=keyboard)
     except:
         await message.answer("❌ Telegram ID noto‘g‘ri formatda.")
     await state.clear()

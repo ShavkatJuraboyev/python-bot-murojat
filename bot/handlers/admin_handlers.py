@@ -695,7 +695,7 @@ async def monitoring_panel(callback: types.CallbackQuery):
 
     buttons = []
     for m in sliced:
-        murojaat_id, uid, rectorate_id, request_type, role, content, created_at = m
+        murojaat_id, uid, _, request_type, _, _, _ = m
         user = await get_user_by_telegram_id(uid)
         full_name = user[2] if user else "Noma'lum"
         status = await get_response_status_by_murojaat_id(murojaat_id)
@@ -706,17 +706,17 @@ async def monitoring_panel(callback: types.CallbackQuery):
                 callback_data=f"view_murojaat:{murojaat_id}"
             )
         ])
-
+    
     nav_buttons = []
-    total_pages = (len(murojaatlar) - 1) // MONITOR_PAGE_SIZE + 1
     if page > 0:
         nav_buttons.append(types.InlineKeyboardButton(text="⬅️ Oldingi", callback_data=f"monitoring:{page - 1}"))
     if end < len(murojaatlar):
         nav_buttons.append(types.InlineKeyboardButton(text="➡️ Keyingi", callback_data=f"monitoring:{page + 1}"))
 
+    buttons.append([types.InlineKeyboardButton(text="⬅️ Ortga", callback_data="back_admin")])
     if nav_buttons:
         buttons.append(nav_buttons)
-    nav_buttons.append(types.InlineKeyboardButton(text="⬅️ Ortga", callback_data="back_admin"))
+    
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
     await callback.message.delete()
     await callback.message.answer("📋 Murojaatlar ro‘yxati:", reply_markup=keyboard)

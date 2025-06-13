@@ -762,6 +762,7 @@ async def view_murojaat_detail(callback: types.CallbackQuery):
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
         [types.InlineKeyboardButton(text="⬅️ Ortga", callback_data="monitoring")]
     ])
+    await callback.message.delete()
     await callback.message.answer(text, reply_markup=keyboard)
 
 
